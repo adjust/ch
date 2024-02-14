@@ -7,8 +7,31 @@ defmodule Ch.RowBinary do
   import Bitwise
 
   @epoch_date ~D[1970-01-01]
-  @epoch_naive_datetime NaiveDateTime.new!(@epoch_date, ~T[00:00:00])
-  @epoch_utc_datetime DateTime.new!(@epoch_date, ~T[00:00:00])
+  @epoch_naive_datetime %NaiveDateTime{
+    calendar: @epoch_date.calendar,
+    year: @epoch_date.year,
+    month: @epoch_date.month,
+    day: @epoch_date.day,
+    hour: 0,
+    minute: 0,
+    second: 0,
+    microsecond: {0, 0}
+  }
+
+  @epoch_utc_datetime %DateTime{
+    calendar: @epoch_date.calendar,
+    year: @epoch_date.year,
+    month: @epoch_date.month,
+    day: @epoch_date.day,
+    hour: 0,
+    minute: 0,
+    second: 0,
+    microsecond: {0, 0},
+    std_offset: 0,
+    time_zone: "Etc/UTC",
+    utc_offset: 0,
+    zone_abbr: "UTC"
+  }
 
   @doc false
   def encode_names_and_types(names, types) do
@@ -190,10 +213,14 @@ defmodule Ch.RowBinary do
 
   def encode({:fixed_string, size}, str) when byte_size(str) < size do
     to_pad = size - byte_size(str)
-    [str | <<0::size(to_pad * 8)>>]
+    size = to_pad * 8
+    [str | <<0::size(size)>>]
   end
 
-  def encode({:fixed_string, size}, nil), do: <<0::size(size * 8)>>
+  def encode({:fixed_string, size}, nil) do
+    size = size * 8
+    <<0::size(size)>>
+  end
 
   def encode(:u8, u) when is_integer(u), do: u
   def encode(:u8, nil), do: 0
@@ -579,7 +606,9 @@ defmodule Ch.RowBinary do
   ]
 
   for {pattern, value} <- varints do
-    defp skip_names(<<unquote(pattern), _::size(unquote(value))-bytes, rest::bytes>>, left, count) do
+    defp skip_names(<<unquote(pattern), rest::bytes>>, left, count) do
+      size = unquote(value)
+      <<_::size(size)-bytes, rest::bytes>> = rest
       skip_names(rest, left - 1, count)
     end
   end
@@ -606,12 +635,14 @@ defmodule Ch.RowBinary do
 
   for {pattern, size} <- varints do
     defp decode_string_decode_rows(
-           <<unquote(pattern), s::size(unquote(size))-bytes, bin::bytes>>,
+           <<unquote(pattern), bin::bytes>>,
            types_rest,
            row,
            rows,
            types
          ) do
+      size = unquote(size)
+      <<s::size(size)-bytes, bin::bytes>> = bin
       decode_rows(types_rest, bin, [to_utf8(s) | row], rows, types)
     end
   end
@@ -661,12 +692,14 @@ defmodule Ch.RowBinary do
 
   for {pattern, size} <- varints do
     defp decode_binary_decode_rows(
-           <<unquote(pattern), s::size(unquote(size))-bytes, bin::bytes>>,
+           <<unquote(pattern), bin>>,
            types_rest,
            row,
            rows,
            types
          ) do
+      size = unquote(size)
+      <<s::size(size)-bytes, bin::bytes>> = bin
       decode_rows(types_rest, bin, [s | row], rows, types)
     end
   end

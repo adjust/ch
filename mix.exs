@@ -8,7 +8,7 @@ defmodule Ch.MixProject do
     [
       app: :ch,
       version: @version,
-      elixir: "~> 1.14",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       name: "Ch",
@@ -37,7 +37,7 @@ defmodule Ch.MixProject do
       {:db_connection, "~> 2.0"},
       {:jason, "~> 1.0"},
       {:decimal, "~> 2.0"},
-      {:ecto, "~> 3.5", optional: true},
+      {:ecto, "~> 3.10.0", optional: true},
       {:benchee, "~> 1.0", only: [:bench]},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :docs},
